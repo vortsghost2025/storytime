@@ -27,7 +27,9 @@ import { createRunStore } from "../sessions/store.ts";
 import { resolveBackend, trackerCliName } from "../tracker/factory.ts";
 import type { AgentSession } from "../types.ts";
 import { isProcessRunning } from "../watchdog/health.ts";
+import type { SessionState } from "../worktree/tmux.ts";
 import {
+	checkSessionState,
 	createSession,
 	ensureTmuxAvailable,
 	isSessionAlive,
@@ -58,6 +60,7 @@ export interface CoordinatorDeps {
 			env?: Record<string, string>,
 		) => Promise<number>;
 		isSessionAlive: (name: string) => Promise<boolean>;
+		checkSessionState: (name: string) => Promise<SessionState>;
 		killSession: (name: string) => Promise<void>;
 		sendKeys: (name: string, keys: string) => Promise<void>;
 		waitForTuiReady: (
@@ -275,6 +278,7 @@ async function startCoordinator(
 	const tmux = deps._tmux ?? {
 		createSession,
 		isSessionAlive,
+		checkSessionState,
 		killSession,
 		sendKeys,
 		waitForTuiReady,
@@ -308,15 +312,26 @@ async function startCoordinator(
 			existing.state !== "completed" &&
 			existing.state !== "zombie"
 		) {
-			const alive = await tmux.isSessionAlive(existing.tmuxSession);
-			if (alive) {
-				throw new AgentError(
-					`Coordinator is already running (tmux: ${existing.tmuxSession}, since: ${existing.startedAt})`,
-					{ agentName: COORDINATOR_NAME },
-				);
+			const sessionState = await tmux.checkSessionState(existing.tmuxSession);
+
+			if (sessionState === "alive") {
+				// Tmux session exists -- but is the process inside still running?
+				// A crashed Claude Code leaves a zombie tmux pane that blocks retries.
+				if (existing.pid !== null && !isProcessRunning(existing.pid)) {
+					// Zombie: tmux pane exists but agent process has exited.
+					// Kill the empty session and reclaim the slot.
+					await tmux.killSession(existing.tmuxSession);
+					store.updateState(COORDINATOR_NAME, "completed");
+				} else {
+					throw new AgentError(
+						`Coordinator is already running (tmux: ${existing.tmuxSession}, since: ${existing.startedAt})`,
+						{ agentName: COORDINATOR_NAME },
+					);
+				}
+			} else {
+				// Session is dead or tmux server is not running -- clean up stale DB entry.
+				store.updateState(COORDINATOR_NAME, "completed");
 			}
-			// Session recorded but tmux is dead — mark as completed and continue
-			store.updateState(COORDINATOR_NAME, "completed");
 		}
 
 		// Resolve model and runtime early (needed for deployConfig and spawn)
@@ -423,8 +438,13 @@ async function startCoordinator(
 			if (!alive) {
 				// Clean up the stale session record
 				store.updateState(COORDINATOR_NAME, "completed");
+				const sessionState = await tmux.checkSessionState(tmuxSession);
+				const detail =
+					sessionState === "no_server"
+						? "The tmux server is no longer running. It may have crashed or been killed externally."
+						: "The Claude Code process may have crashed or exited immediately. Check tmux logs or try running the claude command manually.";
 				throw new AgentError(
-					`Coordinator tmux session "${tmuxSession}" died during startup. The Claude Code process may have crashed or exited immediately. Check tmux logs or try running the claude command manually.`,
+					`Coordinator tmux session "${tmuxSession}" died during startup. ${detail}`,
 					{ agentName: COORDINATOR_NAME },
 				);
 			}
@@ -512,6 +532,7 @@ async function stopCoordinator(opts: { json: boolean }, deps: CoordinatorDeps = 
 	const tmux = deps._tmux ?? {
 		createSession,
 		isSessionAlive,
+		checkSessionState,
 		killSession,
 		sendKeys,
 		waitForTuiReady,
@@ -626,6 +647,7 @@ async function statusCoordinator(
 	const tmux = deps._tmux ?? {
 		createSession,
 		isSessionAlive,
+		checkSessionState,
 		killSession,
 		sendKeys,
 		waitForTuiReady,

@@ -3,6 +3,7 @@ import { AgentError } from "../errors.ts";
 import type { ReadyState } from "../runtimes/types.ts";
 import {
 	capturePaneContent,
+	checkSessionState,
 	createSession,
 	ensureTmuxAvailable,
 	getDescendantPids,
@@ -789,6 +790,54 @@ describe("isSessionAlive", () => {
 		const callArgs = spawnSpy.mock.calls[0] as unknown[];
 		const cmd = callArgs[0] as string[];
 		expect(cmd).toEqual(["tmux", "has-session", "-t", "my-agent"]);
+	});
+});
+
+describe("checkSessionState", () => {
+	let spawnSpy: ReturnType<typeof spyOn>;
+
+	beforeEach(() => {
+		spawnSpy = spyOn(Bun, "spawn");
+	});
+
+	afterEach(() => {
+		spawnSpy.mockRestore();
+	});
+
+	test("returns alive when tmux has-session succeeds", async () => {
+		spawnSpy.mockReturnValue(mockSpawnResult("", "", 0));
+		const state = await checkSessionState("overstory-test-coordinator");
+		expect(state).toBe("alive");
+	});
+
+	test("returns no_server when tmux reports no server running", async () => {
+		spawnSpy.mockReturnValue(
+			mockSpawnResult("", "no server running on /tmp/tmux-1000/default\n", 1),
+		);
+		const state = await checkSessionState("overstory-test-coordinator");
+		expect(state).toBe("no_server");
+	});
+
+	test("returns no_server when tmux reports no sessions", async () => {
+		spawnSpy.mockReturnValue(mockSpawnResult("", "no sessions\n", 1));
+		const state = await checkSessionState("overstory-test-coordinator");
+		expect(state).toBe("no_server");
+	});
+
+	test("returns dead when session not found", async () => {
+		spawnSpy.mockReturnValue(
+			mockSpawnResult("", "can't find session: overstory-test-coordinator\n", 1),
+		);
+		const state = await checkSessionState("overstory-test-coordinator");
+		expect(state).toBe("dead");
+	});
+
+	test("returns dead for generic tmux failure", async () => {
+		spawnSpy.mockReturnValue(
+			mockSpawnResult("", "error connecting to /tmp/tmux-1000/default\n", 1),
+		);
+		const state = await checkSessionState("overstory-test-coordinator");
+		expect(state).toBe("dead");
 	});
 });
 

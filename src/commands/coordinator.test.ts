@@ -38,6 +38,7 @@ interface TmuxCallTracker {
 		env?: Record<string, string>;
 	}>;
 	isSessionAlive: Array<{ name: string; result: boolean }>;
+	checkSessionState: Array<{ name: string; result: "alive" | "dead" | "no_server" }>;
 	killSession: Array<{ name: string }>;
 	sendKeys: Array<{ name: string; keys: string }>;
 	waitForTuiReady: Array<{ name: string }>;
@@ -68,6 +69,7 @@ function makeFakeTmux(
 	options: {
 		waitForTuiReadyResult?: boolean;
 		ensureTmuxAvailableError?: Error;
+		checkSessionStateMap?: Record<string, "alive" | "dead" | "no_server">;
 	} = {},
 ): {
 	tmux: NonNullable<CoordinatorDeps["_tmux"]>;
@@ -76,6 +78,7 @@ function makeFakeTmux(
 	const calls: TmuxCallTracker = {
 		createSession: [],
 		isSessionAlive: [],
+		checkSessionState: [],
 		killSession: [],
 		sendKeys: [],
 		waitForTuiReady: [],
@@ -96,6 +99,13 @@ function makeFakeTmux(
 			const alive = sessionAliveMap[name] ?? false;
 			calls.isSessionAlive.push({ name, result: alive });
 			return alive;
+		},
+		checkSessionState: async (name: string): Promise<"alive" | "dead" | "no_server"> => {
+			const stateMap = options.checkSessionStateMap ?? {};
+			// Default: derive from sessionAliveMap for backwards compat
+			const state = stateMap[name] ?? (sessionAliveMap[name] ? "alive" : "dead");
+			calls.checkSessionState.push({ name, result: state });
+			return state;
 		},
 		killSession: async (name: string): Promise<void> => {
 			calls.killSession.push({ name });
@@ -325,7 +335,11 @@ function makeDeps(
 	sessionAliveMap: Record<string, boolean> = {},
 	watchdogConfig?: { running?: boolean; startSuccess?: boolean; stopSuccess?: boolean },
 	monitorConfig?: { running?: boolean; startSuccess?: boolean; stopSuccess?: boolean },
-	tmuxOptions?: { waitForTuiReadyResult?: boolean; ensureTmuxAvailableError?: Error },
+	tmuxOptions?: {
+		waitForTuiReadyResult?: boolean;
+		ensureTmuxAvailableError?: Error;
+		checkSessionStateMap?: Record<string, "alive" | "dead" | "no_server">;
+	},
 ): {
 	deps: CoordinatorDeps;
 	calls: TmuxCallTracker;
@@ -606,7 +620,7 @@ describe("startCoordinator", () => {
 
 	test("rejects duplicate when coordinator is already running", async () => {
 		// Write an existing active coordinator session
-		const existing = makeCoordinatorSession({ state: "working" });
+		const existing = makeCoordinatorSession({ state: "working", pid: process.pid });
 		saveSessionsToDb([existing]);
 
 		// Mock tmux as alive for the existing session
@@ -654,6 +668,73 @@ describe("startCoordinator", () => {
 		expect(newSession?.agentName).toBe("coordinator");
 		// The new session should have a different ID than the dead one
 		expect(newSession?.id).not.toBe("session-dead-coordinator");
+	});
+
+	test("cleans up zombie session when tmux alive but PID dead", async () => {
+		// Session is "working" in DB, tmux session exists, but the PID is dead
+		const zombieSession = makeCoordinatorSession({
+			id: "session-zombie-coordinator",
+			state: "working",
+			pid: 999999, // Non-existent PID
+		});
+		saveSessionsToDb([zombieSession]);
+
+		// Tmux session is alive (pane exists) but PID 999999 is not running
+		const { deps } = makeDeps(
+			{ "overstory-test-project-coordinator": true },
+			undefined,
+			undefined,
+			{ checkSessionStateMap: { "overstory-test-project-coordinator": "alive" } },
+		);
+
+		const originalSleep = Bun.sleep;
+		Bun.sleep = (() => Promise.resolve()) as typeof Bun.sleep;
+
+		try {
+			await captureStdout(() => coordinatorCommand(["start"], deps));
+		} finally {
+			Bun.sleep = originalSleep;
+		}
+
+		// Zombie session should be cleaned up and new one created
+		const sessions = loadSessionsFromDb();
+		expect(sessions).toHaveLength(1);
+		const newSession = sessions[0];
+		expect(newSession?.state).toBe("booting");
+		expect(newSession?.id).not.toBe("session-zombie-coordinator");
+	});
+
+	test("cleans up stale session when tmux server is not running", async () => {
+		// Session is "booting" in DB but tmux server crashed
+		const staleSession = makeCoordinatorSession({
+			id: "session-stale-coordinator",
+			state: "booting",
+		});
+		saveSessionsToDb([staleSession]);
+
+		// checkSessionState returns no_server
+		const { deps } = makeDeps(
+			{ "overstory-test-project-coordinator": false },
+			undefined,
+			undefined,
+			{ checkSessionStateMap: { "overstory-test-project-coordinator": "no_server" } },
+		);
+
+		const originalSleep = Bun.sleep;
+		Bun.sleep = (() => Promise.resolve()) as typeof Bun.sleep;
+
+		try {
+			await captureStdout(() => coordinatorCommand(["start"], deps));
+		} finally {
+			Bun.sleep = originalSleep;
+		}
+
+		// Stale session cleaned up, new one created
+		const sessions = loadSessionsFromDb();
+		expect(sessions).toHaveLength(1);
+		const newSession = sessions[0];
+		expect(newSession?.state).toBe("booting");
+		expect(newSession?.id).not.toBe("session-stale-coordinator");
 	});
 
 	test("throws AgentError when tmux is not available", async () => {

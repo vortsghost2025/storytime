@@ -410,6 +410,39 @@ export async function isSessionAlive(name: string): Promise<boolean> {
 }
 
 /**
+ * Detailed session state for distinguishing failure modes.
+ *
+ * - `"alive"` -- tmux session exists and is reachable.
+ * - `"dead"` -- tmux server is running but the session does not exist.
+ * - `"no_server"` -- tmux server is not running at all.
+ */
+export type SessionState = "alive" | "dead" | "no_server";
+
+/**
+ * Check tmux session state with detailed failure mode reporting.
+ *
+ * Unlike `isSessionAlive()` which returns a simple boolean, this function
+ * distinguishes between three states:
+ * - `"alive"`: session exists -- the agent may still be running.
+ * - `"dead"`: tmux server is running but session is gone -- agent exited or was killed.
+ * - `"no_server"`: tmux server itself is not running -- all sessions are gone.
+ *
+ * Callers can use this to provide targeted error messages and decide whether
+ * stale session records should be cleaned up vs flagged as errors.
+ *
+ * @param name - Session name to check
+ * @returns The session state
+ */
+export async function checkSessionState(name: string): Promise<SessionState> {
+	const { exitCode, stderr } = await runCommand(["tmux", "has-session", "-t", name]);
+	if (exitCode === 0) return "alive";
+	if (stderr.includes("no server running") || stderr.includes("no sessions")) {
+		return "no_server";
+	}
+	return "dead";
+}
+
+/**
  * Capture the visible content of a tmux session's pane.
  *
  * @param name - Session name to capture from
