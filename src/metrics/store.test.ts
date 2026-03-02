@@ -535,6 +535,7 @@ describe("token snapshots", () => {
 			cacheCreationTokens: 100,
 			estimatedCostUsd: 0.15,
 			modelUsed: "claude-sonnet-4-5",
+			runId: null,
 			createdAt: new Date().toISOString(),
 		};
 
@@ -558,6 +559,7 @@ describe("token snapshots", () => {
 			cacheCreationTokens: 0,
 			estimatedCostUsd: 0.01,
 			modelUsed: "claude-sonnet-4-5",
+			runId: null,
 			createdAt: new Date(now - 60_000).toISOString(), // 1 min ago
 		});
 
@@ -569,6 +571,7 @@ describe("token snapshots", () => {
 			cacheCreationTokens: 0,
 			estimatedCostUsd: 0.02,
 			modelUsed: "claude-sonnet-4-5",
+			runId: null,
 			createdAt: new Date(now).toISOString(), // now (most recent)
 		});
 
@@ -580,6 +583,7 @@ describe("token snapshots", () => {
 			cacheCreationTokens: 0,
 			estimatedCostUsd: 0.03,
 			modelUsed: "claude-sonnet-4-5",
+			runId: null,
 			createdAt: new Date(now - 30_000).toISOString(), // 30s ago
 		});
 
@@ -606,6 +610,7 @@ describe("token snapshots", () => {
 			cacheCreationTokens: 0,
 			estimatedCostUsd: null,
 			modelUsed: null,
+			runId: null,
 			createdAt: time1,
 		});
 
@@ -617,6 +622,7 @@ describe("token snapshots", () => {
 			cacheCreationTokens: 0,
 			estimatedCostUsd: null,
 			modelUsed: null,
+			runId: null,
 			createdAt: time2,
 		});
 
@@ -638,6 +644,7 @@ describe("token snapshots", () => {
 			cacheCreationTokens: 0,
 			estimatedCostUsd: null,
 			modelUsed: null,
+			runId: null,
 			createdAt: new Date().toISOString(),
 		});
 
@@ -649,6 +656,7 @@ describe("token snapshots", () => {
 			cacheCreationTokens: 0,
 			estimatedCostUsd: null,
 			modelUsed: null,
+			runId: null,
 			createdAt: new Date().toISOString(),
 		});
 
@@ -666,6 +674,7 @@ describe("token snapshots", () => {
 			cacheCreationTokens: 0,
 			estimatedCostUsd: null,
 			modelUsed: null,
+			runId: null,
 			createdAt: new Date().toISOString(),
 		});
 
@@ -677,6 +686,7 @@ describe("token snapshots", () => {
 			cacheCreationTokens: 0,
 			estimatedCostUsd: null,
 			modelUsed: null,
+			runId: null,
 			createdAt: new Date().toISOString(),
 		});
 
@@ -698,6 +708,7 @@ describe("token snapshots", () => {
 			cacheCreationTokens: 0,
 			estimatedCostUsd: null,
 			modelUsed: null,
+			runId: null,
 			createdAt: new Date(now - 120_000).toISOString(), // 2 min ago
 		});
 
@@ -709,6 +720,7 @@ describe("token snapshots", () => {
 			cacheCreationTokens: 0,
 			estimatedCostUsd: null,
 			modelUsed: null,
+			runId: null,
 			createdAt: new Date(now - 10_000).toISOString(), // 10s ago (recent)
 		});
 
@@ -729,6 +741,7 @@ describe("token snapshots", () => {
 			cacheCreationTokens: 0,
 			estimatedCostUsd: null,
 			modelUsed: null,
+			runId: null,
 			createdAt: new Date().toISOString(),
 		});
 
@@ -739,6 +752,220 @@ describe("token snapshots", () => {
 		const snapshots = store.getLatestSnapshots();
 		expect(snapshots).toHaveLength(1);
 		expect(snapshots[0]?.agentName).toBe("test-agent");
+	});
+
+	test("runId roundtrips correctly through snapshot record and retrieval", () => {
+		const now = Date.now();
+		store.recordSnapshot({
+			agentName: "agent-a",
+			inputTokens: 100,
+			outputTokens: 50,
+			cacheReadTokens: 0,
+			cacheCreationTokens: 0,
+			estimatedCostUsd: null,
+			modelUsed: null,
+			runId: "run-abc",
+			createdAt: new Date(now).toISOString(),
+		});
+
+		store.recordSnapshot({
+			agentName: "agent-b",
+			inputTokens: 200,
+			outputTokens: 100,
+			cacheReadTokens: 0,
+			cacheCreationTokens: 0,
+			estimatedCostUsd: null,
+			modelUsed: null,
+			runId: null,
+			createdAt: new Date(now).toISOString(),
+		});
+
+		const snapshots = store.getLatestSnapshots();
+		const agentA = snapshots.find((s) => s.agentName === "agent-a");
+		const agentB = snapshots.find((s) => s.agentName === "agent-b");
+
+		expect(agentA?.runId).toBe("run-abc");
+		expect(agentB?.runId).toBeNull();
+	});
+
+	test("getLatestSnapshots(runId) returns only snapshots matching that run", () => {
+		const now = Date.now();
+		store.recordSnapshot({
+			agentName: "agent-a",
+			inputTokens: 100,
+			outputTokens: 50,
+			cacheReadTokens: 0,
+			cacheCreationTokens: 0,
+			estimatedCostUsd: null,
+			modelUsed: null,
+			runId: "run-001",
+			createdAt: new Date(now).toISOString(),
+		});
+
+		store.recordSnapshot({
+			agentName: "agent-b",
+			inputTokens: 200,
+			outputTokens: 100,
+			cacheReadTokens: 0,
+			cacheCreationTokens: 0,
+			estimatedCostUsd: null,
+			modelUsed: null,
+			runId: "run-001",
+			createdAt: new Date(now).toISOString(),
+		});
+
+		store.recordSnapshot({
+			agentName: "agent-c",
+			inputTokens: 300,
+			outputTokens: 150,
+			cacheReadTokens: 0,
+			cacheCreationTokens: 0,
+			estimatedCostUsd: null,
+			modelUsed: null,
+			runId: "run-002",
+			createdAt: new Date(now).toISOString(),
+		});
+
+		const run001Snapshots = store.getLatestSnapshots("run-001");
+		expect(run001Snapshots).toHaveLength(2);
+		expect(run001Snapshots.every((s) => s.runId === "run-001")).toBe(true);
+
+		const run002Snapshots = store.getLatestSnapshots("run-002");
+		expect(run002Snapshots).toHaveLength(1);
+		expect(run002Snapshots[0]?.agentName).toBe("agent-c");
+	});
+
+	test("getLatestSnapshots(runId) returns empty array for unknown run", () => {
+		store.recordSnapshot({
+			agentName: "agent-a",
+			inputTokens: 100,
+			outputTokens: 50,
+			cacheReadTokens: 0,
+			cacheCreationTokens: 0,
+			estimatedCostUsd: null,
+			modelUsed: null,
+			runId: "run-001",
+			createdAt: new Date().toISOString(),
+		});
+
+		const snapshots = store.getLatestSnapshots("run-nonexistent");
+		expect(snapshots).toEqual([]);
+	});
+
+	test("getLatestSnapshots(runId) excludes snapshots with null run_id", () => {
+		const now = Date.now();
+		store.recordSnapshot({
+			agentName: "agent-a",
+			inputTokens: 100,
+			outputTokens: 50,
+			cacheReadTokens: 0,
+			cacheCreationTokens: 0,
+			estimatedCostUsd: null,
+			modelUsed: null,
+			runId: null, // no run
+			createdAt: new Date(now).toISOString(),
+		});
+
+		store.recordSnapshot({
+			agentName: "agent-b",
+			inputTokens: 200,
+			outputTokens: 100,
+			cacheReadTokens: 0,
+			cacheCreationTokens: 0,
+			estimatedCostUsd: null,
+			modelUsed: null,
+			runId: "run-001",
+			createdAt: new Date(now).toISOString(),
+		});
+
+		const run001Snapshots = store.getLatestSnapshots("run-001");
+		expect(run001Snapshots).toHaveLength(1);
+		expect(run001Snapshots[0]?.agentName).toBe("agent-b");
+	});
+
+	test("getLatestSnapshots(runId) returns latest per agent within the run", () => {
+		const now = Date.now();
+		// Two snapshots for agent-a in run-001: should only get the latest
+		store.recordSnapshot({
+			agentName: "agent-a",
+			inputTokens: 100,
+			outputTokens: 50,
+			cacheReadTokens: 0,
+			cacheCreationTokens: 0,
+			estimatedCostUsd: null,
+			modelUsed: null,
+			runId: "run-001",
+			createdAt: new Date(now - 30_000).toISOString(), // older
+		});
+
+		store.recordSnapshot({
+			agentName: "agent-a",
+			inputTokens: 500,
+			outputTokens: 250,
+			cacheReadTokens: 0,
+			cacheCreationTokens: 0,
+			estimatedCostUsd: null,
+			modelUsed: null,
+			runId: "run-001",
+			createdAt: new Date(now).toISOString(), // latest
+		});
+
+		const snapshots = store.getLatestSnapshots("run-001");
+		expect(snapshots).toHaveLength(1);
+		expect(snapshots[0]?.inputTokens).toBe(500); // most recent
+	});
+
+	test("migration adds run_id to existing token_snapshots table", () => {
+		store.close();
+
+		// Create a DB with old token_snapshots schema (no run_id column)
+		const { Database } = require("bun:sqlite");
+		const oldDb = new Database(dbPath);
+		oldDb.exec("DROP TABLE IF EXISTS token_snapshots");
+		oldDb.exec(`
+			CREATE TABLE token_snapshots (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				agent_name TEXT NOT NULL,
+				input_tokens INTEGER NOT NULL DEFAULT 0,
+				output_tokens INTEGER NOT NULL DEFAULT 0,
+				cache_read_tokens INTEGER NOT NULL DEFAULT 0,
+				cache_creation_tokens INTEGER NOT NULL DEFAULT 0,
+				estimated_cost_usd REAL,
+				model_used TEXT,
+				created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f','now'))
+			)
+		`);
+		oldDb.exec(`
+			INSERT INTO token_snapshots (agent_name, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, created_at)
+			VALUES ('old-agent', 100, 50, 0, 0, '2026-01-01T00:00:00.000Z')
+		`);
+		oldDb.close();
+
+		// Re-open with createMetricsStore which should migrate
+		store = createMetricsStore(dbPath);
+
+		// Old row should be readable with null run_id
+		const snapshots = store.getLatestSnapshots();
+		expect(snapshots).toHaveLength(1);
+		expect(snapshots[0]?.agentName).toBe("old-agent");
+		expect(snapshots[0]?.runId).toBeNull();
+
+		// New rows with run_id should work
+		store.recordSnapshot({
+			agentName: "new-agent",
+			inputTokens: 200,
+			outputTokens: 100,
+			cacheReadTokens: 0,
+			cacheCreationTokens: 0,
+			estimatedCostUsd: null,
+			modelUsed: null,
+			runId: "run-xyz",
+			createdAt: new Date().toISOString(),
+		});
+
+		const newSnapshots = store.getLatestSnapshots("run-xyz");
+		expect(newSnapshots).toHaveLength(1);
+		expect(newSnapshots[0]?.runId).toBe("run-xyz");
 	});
 });
 

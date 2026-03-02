@@ -179,6 +179,7 @@ describe("SQL schema consistency", () => {
 				"input_tokens",
 				"model_used",
 				"output_tokens",
+				"run_id",
 			].sort();
 
 			expect(actual).toEqual(expected);

@@ -583,6 +583,7 @@ async function runLog(opts: {
 							const cost = estimateCost(usage);
 							const metricsDbPath = join(config.project.root, ".overstory", "metrics.db");
 							const metricsStore = createMetricsStore(metricsDbPath);
+							const agentSession = getAgentSession(config.project.root, opts.agent);
 							metricsStore.recordSnapshot({
 								agentName: opts.agent,
 								inputTokens: usage.inputTokens,
@@ -591,6 +592,7 @@ async function runLog(opts: {
 								cacheCreationTokens: usage.cacheCreationTokens,
 								estimatedCostUsd: cost,
 								modelUsed: usage.modelUsed,
+								runId: agentSession?.runId ?? null,
 								createdAt: new Date().toISOString(),
 							});
 							metricsStore.close();

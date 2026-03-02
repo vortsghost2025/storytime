@@ -21,8 +21,9 @@ export interface MetricsStore {
 	purge(options: { all?: boolean; agent?: string }): number;
 	/** Record a token usage snapshot for a running agent. */
 	recordSnapshot(snapshot: TokenSnapshot): void;
-	/** Get the most recent snapshot per active agent (one row per agent). */
-	getLatestSnapshots(): TokenSnapshot[];
+	/** Get the most recent snapshot per active agent (one row per agent).
+	 * When runId is provided, restricts to snapshots recorded for that run. */
+	getLatestSnapshots(runId?: string): TokenSnapshot[];
 	/** Get the timestamp of the most recent snapshot for an agent, or null. */
 	getLatestSnapshotTime(agentName: string): string | null;
 	/** Delete snapshots matching criteria. Returns number of rows deleted. */
@@ -60,6 +61,7 @@ interface SnapshotRow {
 	cache_creation_tokens: number;
 	estimated_cost_usd: number | null;
 	model_used: string | null;
+	run_id: string | null;
 	created_at: string;
 }
 
@@ -94,6 +96,7 @@ CREATE TABLE IF NOT EXISTS token_snapshots (
   cache_creation_tokens INTEGER NOT NULL DEFAULT 0,
   estimated_cost_usd REAL,
   model_used TEXT,
+  run_id TEXT,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%f','now'))
 )`;
 
@@ -133,6 +136,18 @@ function migrateRunIdColumn(db: Database): void {
 	const existingColumns = new Set(rows.map((r) => r.name));
 	if (!existingColumns.has("run_id")) {
 		db.exec("ALTER TABLE sessions ADD COLUMN run_id TEXT");
+	}
+}
+
+/**
+ * Migrate an existing token_snapshots table to include the run_id column.
+ * Safe to call multiple times — only adds the column if missing.
+ */
+function migrateSnapshotRunIdColumn(db: Database): void {
+	const rows = db.prepare("PRAGMA table_info(token_snapshots)").all() as Array<{ name: string }>;
+	const existingColumns = new Set(rows.map((r) => r.name));
+	if (!existingColumns.has("run_id")) {
+		db.exec("ALTER TABLE token_snapshots ADD COLUMN run_id TEXT");
 	}
 }
 
@@ -183,6 +198,7 @@ function rowToSnapshot(row: SnapshotRow): TokenSnapshot {
 		cacheCreationTokens: row.cache_creation_tokens,
 		estimatedCostUsd: row.estimated_cost_usd,
 		modelUsed: row.model_used,
+		runId: row.run_id,
 		createdAt: row.created_at,
 	};
 }
@@ -210,6 +226,7 @@ export function createMetricsStore(dbPath: string): MetricsStore {
 	migrateBeadIdToTaskId(db);
 	migrateTokenColumns(db);
 	migrateRunIdColumn(db);
+	migrateSnapshotRunIdColumn(db);
 
 	// Prepare statements for all queries
 	const insertStmt = db.prepare<
@@ -282,13 +299,14 @@ export function createMetricsStore(dbPath: string): MetricsStore {
 			$cache_creation_tokens: number;
 			$estimated_cost_usd: number | null;
 			$model_used: string | null;
+			$run_id: string | null;
 			$created_at: string;
 		}
 	>(`
 		INSERT INTO token_snapshots
-			(agent_name, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, estimated_cost_usd, model_used, created_at)
+			(agent_name, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, estimated_cost_usd, model_used, run_id, created_at)
 		VALUES
-			($agent_name, $input_tokens, $output_tokens, $cache_read_tokens, $cache_creation_tokens, $estimated_cost_usd, $model_used, $created_at)
+			($agent_name, $input_tokens, $output_tokens, $cache_read_tokens, $cache_creation_tokens, $estimated_cost_usd, $model_used, $run_id, $created_at)
 	`);
 
 	const latestSnapshotsStmt = db.prepare<SnapshotRow, Record<string, never>>(`
@@ -299,6 +317,18 @@ export function createMetricsStore(dbPath: string): MetricsStore {
 			FROM token_snapshots
 			GROUP BY agent_name
 		) latest ON s.agent_name = latest.agent_name AND s.created_at = latest.max_created_at
+	`);
+
+	const latestSnapshotsByRunStmt = db.prepare<SnapshotRow, { $run_id: string }>(`
+		SELECT s.*
+		FROM token_snapshots s
+		INNER JOIN (
+			SELECT agent_name, MAX(created_at) as max_created_at
+			FROM token_snapshots
+			WHERE run_id = $run_id
+			GROUP BY agent_name
+		) latest ON s.agent_name = latest.agent_name AND s.created_at = latest.max_created_at
+		WHERE s.run_id = $run_id
 	`);
 
 	const latestSnapshotTimeStmt = db.prepare<
@@ -401,11 +431,16 @@ export function createMetricsStore(dbPath: string): MetricsStore {
 				$cache_creation_tokens: snapshot.cacheCreationTokens,
 				$estimated_cost_usd: snapshot.estimatedCostUsd,
 				$model_used: snapshot.modelUsed,
+				$run_id: snapshot.runId,
 				$created_at: snapshot.createdAt,
 			});
 		},
 
-		getLatestSnapshots(): TokenSnapshot[] {
+		getLatestSnapshots(runId?: string): TokenSnapshot[] {
+			if (runId !== undefined) {
+				const rows = latestSnapshotsByRunStmt.all({ $run_id: runId });
+				return rows.map(rowToSnapshot);
+			}
 			const rows = latestSnapshotsStmt.all({});
 			return rows.map(rowToSnapshot);
 		},

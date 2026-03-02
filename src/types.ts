@@ -442,6 +442,7 @@ export interface TokenSnapshot {
 	estimatedCostUsd: number | null;
 	modelUsed: string | null;
 	createdAt: string;
+	runId: string | null;
 }
 
 // === Task Groups (Batch Coordination) ===

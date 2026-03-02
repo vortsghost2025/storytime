@@ -367,7 +367,7 @@ async function executeCosts(opts: CostsOpts): Promise<void> {
 		const { store: sessionStore } = openSessionStore(overstoryDir);
 
 		try {
-			const snapshots = metricsStore.getLatestSnapshots();
+			const snapshots = metricsStore.getLatestSnapshots(runId ?? undefined);
 			if (snapshots.length === 0) {
 				if (json) {
 					jsonOutput("costs", {

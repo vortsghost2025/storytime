@@ -796,6 +796,7 @@ describe("costsCommand", () => {
 				cacheCreationTokens: 100,
 				estimatedCostUsd: 0.15,
 				modelUsed: "claude-sonnet-4-5",
+				runId: null,
 				createdAt: new Date().toISOString(),
 			});
 			metricsStore.close();
@@ -853,6 +854,7 @@ describe("costsCommand", () => {
 				cacheCreationTokens: 100,
 				estimatedCostUsd: 0.15,
 				modelUsed: "claude-sonnet-4-5",
+				runId: null,
 				createdAt: new Date().toISOString(),
 			});
 			metricsStore.close();
@@ -937,6 +939,7 @@ describe("costsCommand", () => {
 				cacheCreationTokens: 0,
 				estimatedCostUsd: 0.15,
 				modelUsed: "claude-sonnet-4-5",
+				runId: null,
 				createdAt: new Date().toISOString(),
 			});
 			metricsStore.recordSnapshot({
@@ -947,6 +950,7 @@ describe("costsCommand", () => {
 				cacheCreationTokens: 0,
 				estimatedCostUsd: 0.25,
 				modelUsed: "claude-sonnet-4-5",
+				runId: null,
 				createdAt: new Date().toISOString(),
 			});
 			metricsStore.close();
@@ -997,6 +1001,7 @@ describe("costsCommand", () => {
 				cacheCreationTokens: 0,
 				estimatedCostUsd: 0.3,
 				modelUsed: "claude-sonnet-4-5",
+				runId: null,
 				createdAt: new Date().toISOString(),
 			});
 			metricsStore.close();
