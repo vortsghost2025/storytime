@@ -637,6 +637,29 @@ describe("startCoordinator", () => {
 		}
 	});
 
+	test("rejects duplicate when pid is null but tmux session is alive", async () => {
+		// Session has null pid (e.g. migrated from older schema) but tmux is alive.
+		// Cannot prove it's a zombie without a pid, so treat as active.
+		const existing = makeCoordinatorSession({ state: "working", pid: null });
+		saveSessionsToDb([existing]);
+
+		const { deps } = makeDeps(
+			{ "overstory-test-project-coordinator": true },
+			undefined,
+			undefined,
+			{ checkSessionStateMap: { "overstory-test-project-coordinator": "alive" } },
+		);
+
+		try {
+			await coordinatorCommand(["start"], deps);
+			expect(true).toBe(false); // Should have thrown
+		} catch (err) {
+			expect(err).toBeInstanceOf(AgentError);
+			const ae = err as AgentError;
+			expect(ae.message).toContain("already running");
+		}
+	});
+
 	test("cleans up dead session and starts new one", async () => {
 		// Write an existing session that claims to be working
 		const deadSession = makeCoordinatorSession({

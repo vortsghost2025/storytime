@@ -323,6 +323,9 @@ async function startCoordinator(
 					await tmux.killSession(existing.tmuxSession);
 					store.updateState(COORDINATOR_NAME, "completed");
 				} else {
+					// Either the process is genuinely running (pid alive), or pid is null
+					// (e.g. sessions migrated from an older schema). In both cases we
+					// cannot prove the session is a zombie, so treat it as active.
 					throw new AgentError(
 						`Coordinator is already running (tmux: ${existing.tmuxSession}, since: ${existing.startedAt})`,
 						{ agentName: COORDINATOR_NAME },
