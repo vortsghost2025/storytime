@@ -363,7 +363,7 @@ async function startCoordinator(
 		);
 		const manifest = await manifestLoader.load();
 		const resolvedModel = resolveModel(config, manifest, "coordinator", "opus");
-		const runtime = getRuntime(undefined, config);
+		const runtime = getRuntime(undefined, config, "coordinator");
 
 		// Deploy hooks to the project root so the coordinator gets event logging,
 		// mail check --inject, and activity tracking via the standard hook pipeline.

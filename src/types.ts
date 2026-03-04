@@ -98,6 +98,11 @@ export interface OverstoryConfig {
 		/** Default runtime adapter name (default: "claude"). */
 		default: string;
 		/**
+		 * Per-capability runtime overrides. Maps capability names (e.g. "coordinator", "builder")
+		 * to runtime adapter names. Lookup chain: explicit --runtime flag > capabilities[cap] > default > "claude".
+		 */
+		capabilities?: Partial<Record<string, string>>;
+		/**
 		 * Runtime adapter for headless one-shot AI calls (--print mode).
 		 * Used by merge/resolver.ts and watchdog/triage.ts.
 		 * Falls back to runtime.default when omitted.

@@ -117,4 +117,40 @@ describe("getRuntime", () => {
 		expect(runtime).toBeInstanceOf(GeminiRuntime);
 		expect(runtime.id).toBe("gemini");
 	});
+
+	describe("capability routing", () => {
+		it("resolves capability-specific runtime from config", () => {
+			const config = {
+				runtime: { default: "claude", capabilities: { builder: "gemini" } },
+			} as unknown as OverstoryConfig;
+			const runtime = getRuntime(undefined, config, "builder");
+			expect(runtime).toBeInstanceOf(GeminiRuntime);
+			expect(runtime.id).toBe("gemini");
+		});
+
+		it("falls back to default when capability has no override", () => {
+			const config = {
+				runtime: { default: "codex", capabilities: { builder: "gemini" } },
+			} as unknown as OverstoryConfig;
+			const runtime = getRuntime(undefined, config, "scout");
+			expect(runtime).toBeInstanceOf(CodexRuntime);
+			expect(runtime.id).toBe("codex");
+		});
+
+		it("explicit name overrides capability routing", () => {
+			const config = {
+				runtime: { default: "claude", capabilities: { builder: "gemini" } },
+			} as unknown as OverstoryConfig;
+			const runtime = getRuntime("copilot", config, "builder");
+			expect(runtime).toBeInstanceOf(CopilotRuntime);
+			expect(runtime.id).toBe("copilot");
+		});
+
+		it("works when capabilities is undefined", () => {
+			const config = { runtime: { default: "claude" } } as OverstoryConfig;
+			const runtime = getRuntime(undefined, config, "coordinator");
+			expect(runtime).toBeInstanceOf(ClaudeRuntime);
+			expect(runtime.id).toBe("claude");
+		});
+	});
 });

@@ -706,6 +706,17 @@ function validateConfig(config: OverstoryConfig): void {
 		}
 	}
 
+	if (config.runtime?.capabilities) {
+		for (const [cap, runtimeName] of Object.entries(config.runtime.capabilities)) {
+			if (runtimeName !== undefined && (typeof runtimeName !== "string" || runtimeName === "")) {
+				throw new ValidationError(
+					`runtime.capabilities.${cap} must be a non-empty string`,
+					{ field: `runtime.capabilities.${cap}`, value: runtimeName },
+				);
+			}
+		}
+	}
+
 	// models: validate each value.
 	// - Standard runtimes: aliases (sonnet/opus/haiku) or provider-prefixed refs.
 	// - Codex runtime: also allow bare model refs (e.g. gpt-5.3-codex).
