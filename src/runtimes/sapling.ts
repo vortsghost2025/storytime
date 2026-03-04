@@ -695,4 +695,9 @@ export class SaplingRuntime implements AgentRuntime {
 
 		return env;
 	}
+
+	/** Sapling uses NDJSON event streaming — no transcript files. */
+	getTranscriptDir(_projectRoot: string): string | null {
+		return null;
+	}
 }

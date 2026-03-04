@@ -10,7 +10,7 @@ import { loadConfig } from "../config.ts";
 import { ValidationError } from "../errors.ts";
 import { jsonOutput } from "../json.ts";
 import { accent, color } from "../logging/color.ts";
-import { getRuntime } from "../runtimes/registry.ts";
+import { getAllRuntimes, getRuntime } from "../runtimes/registry.ts";
 import { openSessionStore } from "../sessions/compat.ts";
 import { type AgentSession, SUPPORTED_CAPABILITIES } from "../types.ts";
 
@@ -30,12 +30,10 @@ export interface DiscoveredAgent {
 	lastActivity: string;
 }
 
-/** Known instruction file paths, tried in order until one exists. */
-const KNOWN_INSTRUCTION_PATHS = [
-	join(".claude", "CLAUDE.md"), // Claude Code, Pi
-	"AGENTS.md", // Codex (future)
-	"GEMINI.md", // Gemini CLI
-];
+/** Build the list of known instruction file paths from all registered runtimes. */
+function getKnownInstructionPaths(): string[] {
+	return [...new Set(getAllRuntimes().map((r) => r.instructionPath))];
+}
 
 /**
  * Extract file scope from an agent's overlay instruction file.
@@ -52,9 +50,10 @@ export async function extractFileScope(
 ): Promise<string[]> {
 	try {
 		let content: string | null = null;
+		const knownPaths = getKnownInstructionPaths();
 		const pathsToTry = runtimeInstructionPath
-			? [runtimeInstructionPath, ...KNOWN_INSTRUCTION_PATHS]
-			: KNOWN_INSTRUCTION_PATHS;
+			? [runtimeInstructionPath, ...knownPaths]
+			: knownPaths;
 		for (const relPath of pathsToTry) {
 			const overlayPath = join(worktreePath, relPath);
 			const overlayFile = Bun.file(overlayPath);

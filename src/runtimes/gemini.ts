@@ -232,4 +232,9 @@ export class GeminiRuntime implements AgentRuntime {
 	buildEnv(model: ResolvedModel): Record<string, string> {
 		return model.env ?? {};
 	}
+
+	/** Gemini does not produce transcript files. */
+	getTranscriptDir(_projectRoot: string): string | null {
+		return null;
+	}
 }

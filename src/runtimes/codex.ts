@@ -230,4 +230,9 @@ export class CodexRuntime implements AgentRuntime {
 	buildEnv(model: ResolvedModel): Record<string, string> {
 		return model.env ?? {};
 	}
+
+	/** Codex does not produce transcript files. */
+	getTranscriptDir(_projectRoot: string): string | null {
+		return null;
+	}
 }

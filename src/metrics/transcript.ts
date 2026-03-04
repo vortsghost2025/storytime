@@ -27,8 +27,6 @@ import type { TokenUsage } from "./pricing.ts";
 
 export type TranscriptUsage = TokenUsage;
 
-export { estimateCost } from "./pricing.ts";
-
 /**
  * Narrow an unknown value to determine if it looks like a transcript assistant entry.
  * Returns the usage fields if valid, or null otherwise.

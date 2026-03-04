@@ -185,6 +185,15 @@ export interface AgentRuntime {
 	parseTranscript(path: string): Promise<TranscriptSummary | null>;
 
 	/**
+	 * Return the directory containing session transcript files for this runtime,
+	 * or null if transcript discovery is not supported.
+	 *
+	 * @param projectRoot - Absolute path to the project root
+	 * @returns Absolute path to the transcript directory, or null
+	 */
+	getTranscriptDir(projectRoot: string): string | null;
+
+	/**
 	 * Build runtime-specific environment variables for model/provider routing.
 	 * Claude Code uses ANTHROPIC_API_KEY; Codex uses OPENAI_API_KEY; Pi passes
 	 * the provider's authTokenEnv directly.

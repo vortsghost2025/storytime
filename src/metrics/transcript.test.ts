@@ -6,7 +6,7 @@
  *
  * Coverage:
  *   - parseTranscriptUsage (transcript.ts)
- *   - estimateCost re-export (transcript.ts -> pricing.ts)
+ *   - estimateCost (pricing.ts, imported directly)
  *   - getPricingForModel (pricing.ts)
  */
 
@@ -15,8 +15,8 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { cleanupTempDir } from "../test-helpers.ts";
-import { getPricingForModel, estimateCost as pricingEstimateCost } from "./pricing.ts";
-import { estimateCost, parseTranscriptUsage } from "./transcript.ts";
+import { getPricingForModel, estimateCost } from "./pricing.ts";
+import { parseTranscriptUsage } from "./transcript.ts";
 
 let tempDir: string;
 
@@ -479,17 +479,5 @@ describe("getPricingForModel", () => {
 	});
 });
 
-// === re-export parity ===
-
-describe("estimateCost re-export parity", () => {
-	test("transcript.estimateCost and pricing.estimateCost produce same result", () => {
-		const usage = {
-			inputTokens: 1_000_000,
-			outputTokens: 1_000_000,
-			cacheReadTokens: 1_000_000,
-			cacheCreationTokens: 1_000_000,
-			modelUsed: "claude-opus-4-6",
-		};
-		expect(estimateCost(usage)).toBe(pricingEstimateCost(usage));
-	});
-});
+// estimateCost re-export removed from transcript.ts (overstory-aa00).
+// estimateCost is now imported directly from pricing.ts everywhere.

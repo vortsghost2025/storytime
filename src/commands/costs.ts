@@ -15,8 +15,10 @@ import { jsonError, jsonOutput } from "../json.ts";
 import { color } from "../logging/color.ts";
 import { renderHeader, separator } from "../logging/theme.ts";
 import { createMetricsStore } from "../metrics/store.ts";
-import { estimateCost, parseTranscriptUsage } from "../metrics/transcript.ts";
+import { estimateCost } from "../metrics/pricing.ts";
+import { parseTranscriptUsage } from "../metrics/transcript.ts";
 import { getRuntime } from "../runtimes/registry.ts";
+import type { AgentRuntime } from "../runtimes/types.ts";
 import { openSessionStore } from "../sessions/compat.ts";
 import type { SessionMetrics } from "../types.ts";
 
@@ -44,40 +46,20 @@ function padLeft(str: string, width: number): string {
 }
 
 /**
- * Resolve the transcript directory for a given runtime and project root.
- *
- * @param runtimeId - The runtime identifier (e.g. "claude")
- * @param projectRoot - Absolute path to the project root
- * @returns Absolute path to the transcript directory, or null if not supported
- */
-function getTranscriptDir(runtimeId: string, projectRoot: string): string | null {
-	const homeDir = process.env.HOME ?? "";
-	if (homeDir.length === 0) return null;
-	switch (runtimeId) {
-		case "claude": {
-			const projectKey = projectRoot.replace(/\//g, "-");
-			return join(homeDir, ".claude", "projects", projectKey);
-		}
-		default:
-			return null;
-	}
-}
-
-/**
  * Discover the orchestrator's transcript JSONL file for the given runtime.
  *
  * Scans the runtime-specific transcript directory for JSONL files and returns
  * the most recently modified one, corresponding to the current orchestrator session.
  *
- * @param runtimeId - The runtime identifier (e.g. "claude")
+ * @param runtime - The agent runtime adapter
  * @param projectRoot - Absolute path to the project root
  * @returns Absolute path to the most recent transcript, or null if none found
  */
 async function discoverOrchestratorTranscript(
-	runtimeId: string,
+	runtime: AgentRuntime,
 	projectRoot: string,
 ): Promise<string | null> {
-	const transcriptDir = getTranscriptDir(runtimeId, projectRoot);
+	const transcriptDir = runtime.getTranscriptDir(projectRoot);
 	if (transcriptDir === null) return null;
 
 	let entries: string[];
@@ -292,7 +274,7 @@ async function executeCosts(opts: CostsOpts): Promise<void> {
 	// Handle --self flag (early return for self-scan)
 	if (self) {
 		const runtime = getRuntime(undefined, config);
-		const transcriptPath = await discoverOrchestratorTranscript(runtime.id, config.project.root);
+		const transcriptPath = await discoverOrchestratorTranscript(runtime, config.project.root);
 		if (!transcriptPath) {
 			if (json) {
 				jsonError("costs", `No transcript found for runtime '${runtime.id}'`);

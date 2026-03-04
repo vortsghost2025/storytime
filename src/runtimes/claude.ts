@@ -5,7 +5,8 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { deployHooks } from "../agents/hooks-deployer.ts";
-import { estimateCost, parseTranscriptUsage } from "../metrics/transcript.ts";
+import { estimateCost } from "../metrics/pricing.ts";
+import { parseTranscriptUsage } from "../metrics/transcript.ts";
 import type { ResolvedModel } from "../types.ts";
 import type {
 	AgentRuntime,
@@ -218,6 +219,22 @@ export class ClaudeRuntime implements AgentRuntime {
 	 */
 	buildEnv(model: ResolvedModel): Record<string, string> {
 		return model.env ?? {};
+	}
+
+	/**
+	 * Return the Claude Code transcript directory for a given project root.
+	 *
+	 * Claude Code stores session transcripts at ~/.claude/projects/<projectKey>/
+	 * where <projectKey> is the project root path with "/" replaced by "-".
+	 *
+	 * @param projectRoot - Absolute path to the project root
+	 * @returns Absolute path to the transcript directory, or null if HOME is unavailable
+	 */
+	getTranscriptDir(projectRoot: string): string | null {
+		const home = process.env.HOME ?? "";
+		if (home.length === 0) return null;
+		const projectKey = projectRoot.replace(/\//g, "-");
+		return join(home, ".claude", "projects", projectKey);
 	}
 }
 

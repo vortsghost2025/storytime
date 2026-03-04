@@ -21,6 +21,26 @@ const runtimes = new Map<string, () => AgentRuntime>([
 ]);
 
 /**
+ * Return all registered runtime adapter instances.
+ *
+ * Used by callers that need to enumerate all runtimes (e.g. to build a
+ * dynamic list of known instruction file paths from each runtime's
+ * `instructionPath` property).
+ *
+ * @returns Array of one fresh instance per registered runtime.
+ */
+export function getAllRuntimes(): AgentRuntime[] {
+	return [
+		new ClaudeRuntime(),
+		new CodexRuntime(),
+		new PiRuntime(),
+		new CopilotRuntime(),
+		new GeminiRuntime(),
+		new SaplingRuntime(),
+	];
+}
+
+/**
  * Resolve a runtime adapter by name.
  *
  * Lookup order:

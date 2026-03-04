@@ -245,4 +245,9 @@ export class PiRuntime implements AgentRuntime {
 	buildEnv(model: ResolvedModel): Record<string, string> {
 		return model.env ?? {};
 	}
+
+	/** Pi uses RPC — no transcript files. */
+	getTranscriptDir(_projectRoot: string): string | null {
+		return null;
+	}
 }
