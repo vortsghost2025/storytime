@@ -20,6 +20,7 @@ Requires [Bun](https://bun.sh) v1.0+, git, and tmux. At least one supported agen
 - [Codex](https://github.com/openai/codex) (`codex` CLI)
 - [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`gemini` CLI)
 - [Sapling](https://github.com/jayminwest/sapling) (`sp` CLI)
+- [OpenCode](https://opencode.ai) (`opencode` CLI)
 
 ```bash
 bun install -g @os-eco/overstory-cli
@@ -282,7 +283,7 @@ overstory/
     metrics/                      SQLite metrics + pricing + transcript parsing
     doctor/                       Health check modules (11 checks)
     insights/                     Session insight analyzer for auto-expertise
-    runtimes/                     AgentRuntime abstraction (registry + adapters: Claude, Pi, Copilot, Codex, Gemini, Sapling)
+    runtimes/                     AgentRuntime abstraction (registry + adapters: Claude, Pi, Copilot, Codex, Gemini, Sapling, OpenCode)
     tracker/                      Pluggable task tracker (beads + seeds backends)
     mulch/                        mulch client (programmatic API + CLI wrapper)
     e2e/                          End-to-end lifecycle tests

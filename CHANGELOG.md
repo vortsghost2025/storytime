@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.5] - 2026-03-05
+
+### Added
+
+#### OpenCode Runtime Adapter
+- **`src/runtimes/opencode.ts`** — new runtime adapter for [SST OpenCode](https://opencode.ai) (`opencode` CLI), implementing the `AgentRuntime` interface with model flag support, `AGENTS.md` instruction file, and headless subprocess spawning
+- **`src/runtimes/opencode.test.ts`** — test suite (325 lines) covering spawn command building, overlay generation, guard rules, and environment setup
+
+#### NDJSON Event Tailer for Headless Agents
+- **`src/events/tailer.ts`** — background NDJSON event tailer that polls `stdout.log` files from headless agents (e.g. Sapling, OpenCode), parses new lines, and writes them into `events.db` via EventStore — enabling `ov status`, `ov dashboard`, and `ov feed` to show live progress for headless agents
+- **`src/events/tailer.test.ts`** — test suite (461 lines) covering line parsing, file tailing, stop/cleanup, and edge cases
+- **Watchdog integration** — `runDaemonTick()` now automatically starts/stops event tailers for active headless agents, with module-level tailer registry persisting across ticks
+
+#### Headless Agent Inspection
+- **`ov inspect` stdout.log fallback** — when `--no-tmux` or tmux capture fails, inspect now falls back to reading the agent's `stdout.log` NDJSON file, parsing recent events to display tool activity and progress for headless agents
+
+### Fixed
+
+- **Sapling `buildDirectSpawn()` crash** — model resolution logic now guards against `undefined` model parameter instead of unconditionally calling `.toUpperCase()` on it; `--model` flag is only appended when a model is actually specified
+- **Sapling API key leak** — `ANTHROPIC_API_KEY` is now explicitly cleared in the child process environment to prevent the parent session's key from leaking into sapling subprocesses; gateway providers re-set it as needed
+
+### Testing
+
+- 3201 tests across 98 files (7551 `expect()` calls)
+
 ## [0.8.4] - 2026-03-04
 
 ### Added
@@ -1439,7 +1464,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Biome configuration for formatting and linting
 - TypeScript strict mode with `noUncheckedIndexedAccess`
 
-[Unreleased]: https://github.com/jayminwest/overstory/compare/v0.8.4...HEAD
+[Unreleased]: https://github.com/jayminwest/overstory/compare/v0.8.5...HEAD
+[0.8.5]: https://github.com/jayminwest/overstory/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/jayminwest/overstory/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/jayminwest/overstory/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/jayminwest/overstory/compare/v0.8.1...v0.8.2

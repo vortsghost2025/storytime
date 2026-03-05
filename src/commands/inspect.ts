@@ -179,16 +179,12 @@ async function parseStdoutLog(logPath: string): Promise<StdoutLogData | null> {
 				typeof event.timestamp === "string" ? event.timestamp : new Date().toISOString();
 
 			if (type === "tool_start") {
-				const toolName =
-					typeof event.toolName === "string" ? event.toolName : "unknown";
-				const argsSummary =
-					typeof event.argsSummary === "string" ? event.argsSummary : "";
+				const toolName = typeof event.toolName === "string" ? event.toolName : "unknown";
+				const argsSummary = typeof event.argsSummary === "string" ? event.argsSummary : "";
 				pendingTools.push({ toolName, argsSummary, timestamp });
 			} else if (type === "tool_end") {
-				const toolName =
-					typeof event.toolName === "string" ? event.toolName : "";
-				const durationMs =
-					typeof event.durationMs === "number" ? event.durationMs : null;
+				const toolName = typeof event.toolName === "string" ? event.toolName : "";
+				const durationMs = typeof event.durationMs === "number" ? event.durationMs : null;
 
 				// Find and pop the most recent matching pending tool
 				let pendingIdx = -1;
@@ -214,17 +210,13 @@ async function parseStdoutLog(logPath: string): Promise<StdoutLogData | null> {
 				const turn = typeof event.turn === "number" ? event.turn : currentTurn + 1;
 				currentTurn = turn;
 			} else if (type === "turn_end") {
-				const inputTokens =
-					typeof event.inputTokens === "number" ? event.inputTokens : 0;
-				const outputTokens =
-					typeof event.outputTokens === "number" ? event.outputTokens : 0;
+				const inputTokens = typeof event.inputTokens === "number" ? event.inputTokens : 0;
+				const outputTokens = typeof event.outputTokens === "number" ? event.outputTokens : 0;
 				const cacheReadTokens =
 					typeof event.cacheReadTokens === "number" ? event.cacheReadTokens : 0;
 				const model = typeof event.model === "string" ? event.model : "";
 				const ctxUtil =
-					typeof event.contextUtilization === "number"
-						? event.contextUtilization
-						: null;
+					typeof event.contextUtilization === "number" ? event.contextUtilization : null;
 
 				cumulativeInputTokens += inputTokens;
 				cumulativeOutputTokens += outputTokens;
@@ -402,8 +394,7 @@ export async function gatherInspectData(
 					// Populate tokenUsage from turn_end events when metrics.db had nothing.
 					if (
 						tokenUsage === null &&
-						(stdoutData.cumulativeInputTokens > 0 ||
-							stdoutData.cumulativeOutputTokens > 0)
+						(stdoutData.cumulativeInputTokens > 0 || stdoutData.cumulativeOutputTokens > 0)
 					) {
 						tokenUsage = {
 							inputTokens: stdoutData.cumulativeInputTokens,

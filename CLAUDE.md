@@ -109,6 +109,7 @@ overstory/                        # This repo (the overstory tool itself)
     events/
       store.ts                    # SQLite EventStore (tool events, timelines, errors)
       tool-filter.ts              # Smart arg filtering for event storage
+      tailer.ts                   # NDJSON event tailer for headless agent stdout logs
     insights/
       analyzer.ts                 # Session insight analyzer for auto-expertise
     tracker/
@@ -130,6 +131,7 @@ overstory/                        # This repo (the overstory tool itself)
       codex.ts                    # OpenAI Codex runtime adapter (headless, OS-level sandbox)
       gemini.ts                   # Gemini CLI runtime adapter (Google's gemini coding agent)
       sapling.ts                  # Sapling runtime adapter (headless coding agent)
+      opencode.ts                 # OpenCode runtime adapter (SST OpenCode coding agent)
       connections.ts              # Module-level RuntimeConnection registry for RPC agents
     mulch/
       client.ts                   # mulch client (programmatic API for record/search/query, CLI wrapper for rest)
