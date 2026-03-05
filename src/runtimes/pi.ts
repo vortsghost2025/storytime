@@ -179,10 +179,12 @@ export class PiRuntime implements AgentRuntime {
 	/**
 	 * Parse a Pi transcript JSONL file into normalized token usage.
 	 *
-	 * Pi JSONL format differs from Claude Code:
-	 * - Token counts are in `message_end` events with TOP-LEVEL `inputTokens` / `outputTokens`
-	 *   (not nested under message.usage)
-	 * - Model identity comes from `model_change` events with a `model` field
+	 * Pi JSONL format (version 3):
+	 * - Session metadata: `{ type: "session", version: 3, id, cwd }`
+	 * - Model identity: `{ type: "model_change", provider, modelId }`
+	 * - Token usage: on `{ type: "message" }` events where `message.role === "assistant"`,
+	 *   nested under `message.usage`: `{ input, output, cacheRead, cacheWrite, totalTokens, cost }`
+	 * - Cost data: `message.usage.cost.total` (USD)
 	 *
 	 * Returns null if the file does not exist or cannot be parsed.
 	 *
@@ -212,17 +214,48 @@ export class PiRuntime implements AgentRuntime {
 					continue;
 				}
 
+				// Model identity from model_change events.
+				if (entry.type === "model_change") {
+					if (typeof entry.modelId === "string") {
+						model = entry.modelId;
+					} else if (typeof entry.model === "string") {
+						model = entry.model;
+					}
+				}
+
+				// Token usage from assistant message events.
+				// Pi v3 format: message.usage.input / message.usage.output
+				if (entry.type === "message") {
+					const msg = entry.message as Record<string, unknown> | undefined;
+					if (msg?.role === "assistant") {
+						const usage = msg.usage as Record<string, unknown> | undefined;
+						if (usage) {
+							if (typeof usage.input === "number") {
+								inputTokens += usage.input;
+							}
+							if (typeof usage.output === "number") {
+								outputTokens += usage.output;
+							}
+							// Also count cache tokens toward input for compatibility.
+							if (typeof usage.cacheRead === "number") {
+								inputTokens += usage.cacheRead;
+							}
+						}
+
+						// Capture model from message if model_change was missed.
+						if (typeof msg.model === "string" && model === "") {
+							model = msg.model;
+						}
+					}
+				}
+
+				// Fallback: message_end events (older Pi versions).
 				if (entry.type === "message_end") {
-					// Pi top-level token fields (not nested under message.usage).
 					if (typeof entry.inputTokens === "number") {
 						inputTokens += entry.inputTokens;
 					}
 					if (typeof entry.outputTokens === "number") {
 						outputTokens += entry.outputTokens;
-					}
-				} else if (entry.type === "model_change") {
-					if (typeof entry.model === "string") {
-						model = entry.model;
 					}
 				}
 			}
@@ -246,8 +279,24 @@ export class PiRuntime implements AgentRuntime {
 		return model.env ?? {};
 	}
 
-	/** Pi uses RPC — no transcript files. */
-	getTranscriptDir(_projectRoot: string): string | null {
-		return null;
+	/**
+	 * Return the directory containing Pi session transcript files.
+	 *
+	 * Pi stores JSONL transcripts in `~/.pi/agent/sessions/{encoded-project-path}/`.
+	 * The project path is encoded by replacing path separators with `--` and
+	 * prefixing/suffixing with `--`.
+	 *
+	 * Example: `/home/user/project` → `~/.pi/agent/sessions/--home-user-project--/`
+	 *
+	 * @param projectRoot - Absolute path to the project root
+	 * @returns Absolute path to the transcript directory
+	 */
+	getTranscriptDir(projectRoot: string): string | null {
+		const home = process.env.HOME ?? process.env.USERPROFILE;
+		if (!home) return null;
+
+		// Pi encodes the project path: replace separators with dashes, wrap with --
+		const encoded = `--${projectRoot.replace(/[\\/]/g, "-").replace(/:/g, "")}--`;
+		return join(home, ".pi", "agent", "sessions", encoded);
 	}
 }

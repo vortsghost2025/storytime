@@ -628,6 +628,123 @@ describe("PiRuntime", () => {
 			expect(result?.inputTokens).toBe(0);
 			expect(result?.outputTokens).toBe(0);
 		});
+
+		test("parses Pi v3 format: message events with message.usage", async () => {
+			const transcriptPath = join(tempDir, "v3-session.jsonl");
+			const session = JSON.stringify({ type: "session", version: 3, id: "test" });
+			const modelChange = JSON.stringify({
+				type: "model_change",
+				provider: "anthropic",
+				modelId: "claude-opus-4-6",
+			});
+			const msg = JSON.stringify({
+				type: "message",
+				message: {
+					role: "assistant",
+					content: [{ type: "text", text: "Hello" }],
+					model: "claude-opus-4-6",
+					usage: { input: 100, output: 50, cacheRead: 200, cacheWrite: 0, totalTokens: 350 },
+				},
+			});
+			await Bun.write(transcriptPath, `${session}\n${modelChange}\n${msg}\n`);
+
+			const result = await runtime.parseTranscript(transcriptPath);
+			expect(result).not.toBeNull();
+			// input (100) + cacheRead (200) = 300
+			expect(result?.inputTokens).toBe(300);
+			expect(result?.outputTokens).toBe(50);
+			expect(result?.model).toBe("claude-opus-4-6");
+		});
+
+		test("parses model from modelId field in model_change (v3)", async () => {
+			const transcriptPath = join(tempDir, "v3-model.jsonl");
+			const modelChange = JSON.stringify({
+				type: "model_change",
+				modelId: "claude-sonnet-4-6",
+			});
+			await Bun.write(transcriptPath, `${modelChange}\n`);
+
+			const result = await runtime.parseTranscript(transcriptPath);
+			expect(result?.model).toBe("claude-sonnet-4-6");
+		});
+
+		test("aggregates multiple v3 message events", async () => {
+			const transcriptPath = join(tempDir, "v3-multi.jsonl");
+			const msg1 = JSON.stringify({
+				type: "message",
+				message: {
+					role: "assistant",
+					usage: { input: 100, output: 50, cacheRead: 0 },
+				},
+			});
+			const msg2 = JSON.stringify({
+				type: "message",
+				message: {
+					role: "assistant",
+					usage: { input: 200, output: 75, cacheRead: 50 },
+				},
+			});
+			await Bun.write(transcriptPath, `${msg1}\n${msg2}\n`);
+
+			const result = await runtime.parseTranscript(transcriptPath);
+			expect(result?.inputTokens).toBe(350); // 100 + 200 + 50 cacheRead
+			expect(result?.outputTokens).toBe(125); // 50 + 75
+		});
+
+		test("skips user message events (only counts assistant)", async () => {
+			const transcriptPath = join(tempDir, "v3-user.jsonl");
+			const userMsg = JSON.stringify({
+				type: "message",
+				message: {
+					role: "user",
+					content: [{ type: "text", text: "Fix the bug" }],
+				},
+			});
+			const assistantMsg = JSON.stringify({
+				type: "message",
+				message: {
+					role: "assistant",
+					usage: { input: 100, output: 50 },
+				},
+			});
+			await Bun.write(transcriptPath, `${userMsg}\n${assistantMsg}\n`);
+
+			const result = await runtime.parseTranscript(transcriptPath);
+			expect(result?.inputTokens).toBe(100);
+			expect(result?.outputTokens).toBe(50);
+		});
+
+		test("falls back to message.model when model_change absent", async () => {
+			const transcriptPath = join(tempDir, "v3-fallback-model.jsonl");
+			const msg = JSON.stringify({
+				type: "message",
+				message: {
+					role: "assistant",
+					model: "claude-haiku-4-5",
+					usage: { input: 10, output: 5 },
+				},
+			});
+			await Bun.write(transcriptPath, `${msg}\n`);
+
+			const result = await runtime.parseTranscript(transcriptPath);
+			expect(result?.model).toBe("claude-haiku-4-5");
+		});
+	});
+
+	describe("getTranscriptDir", () => {
+		test("returns path under ~/.pi/agent/sessions with encoded project path", () => {
+			const dir = runtime.getTranscriptDir("/home/user/project");
+			expect(dir).not.toBeNull();
+			expect(dir).toContain(".pi");
+			expect(dir).toContain("sessions");
+			expect(dir).toContain("--home-user-project--");
+		});
+
+		test("encodes Windows paths (backslashes and colon)", () => {
+			const dir = runtime.getTranscriptDir("C:\\Users\\test\\project");
+			expect(dir).not.toBeNull();
+			expect(dir).toContain("--C-Users-test-project--");
+		});
 	});
 });
 
@@ -642,7 +759,7 @@ describe("PiRuntime integration: registry resolves 'pi'", () => {
 
 	test("getRuntime rejects truly unknown runtimes", async () => {
 		const { getRuntime } = await import("./registry.ts");
-		expect(() => getRuntime("aider")).toThrow('Unknown runtime: "aider"');
 		expect(() => getRuntime("cursor")).toThrow('Unknown runtime: "cursor"');
+		expect(() => getRuntime("nonexistent")).toThrow('Unknown runtime: "nonexistent"');
 	});
 });
