@@ -6,7 +6,7 @@
 	"merge-fix-lead": 1773152887389,
 	"init-fix-builder": 1773152146062,
 	"dashboard-fix-lead": 1773152311975,
-	"coordinator": 1773270777988,
+	"coordinator": 1773270903514,
 	"canopy-client-lead": 1773270443639,
 	"delivery-prompt-lead": 1773269825807,
 	"decision-gate-lead": 1773270094236,
@@ -14,6 +14,6 @@
 	"decision-gate-builder": 1773269866752,
 	"co-creation-prompt-lead": 1773270639255,
 	"co-creation-prompt-builder": 1773270590079,
-	"overlay-pipeline-lead": 1773270781040,
-	"profile-placeholder-builder": 1773270681558
+	"overlay-pipeline-lead": 1773270873350,
+	"profile-placeholder-builder": 1773270840799
 }
