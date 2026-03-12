@@ -29,8 +29,8 @@ import {
 	type TailerHandle,
 	type TailerOptions,
 } from "../events/tailer.ts";
-import { createMulchClient } from "../mulch/client.ts";
 import { createMailStore, type MailStore } from "../mail/store.ts";
+import { createMulchClient } from "../mulch/client.ts";
 import { getConnection, removeConnection } from "../runtimes/connections.ts";
 import type { RuntimeConnection } from "../runtimes/types.ts";
 import { openSessionStore } from "../sessions/compat.ts";

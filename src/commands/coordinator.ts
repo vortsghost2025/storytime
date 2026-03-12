@@ -304,7 +304,13 @@ async function startCoordinator(
 		ensureTmuxAvailable,
 	};
 
-	const { json, attach: shouldAttach, watchdog: watchdogFlag, monitor: monitorFlag, profile: profileFlag } = opts;
+	const {
+		json,
+		attach: shouldAttach,
+		watchdog: watchdogFlag,
+		monitor: monitorFlag,
+		profile: profileFlag,
+	} = opts;
 
 	if (isRunningAsRoot()) {
 		throw new AgentError(
@@ -1260,7 +1266,13 @@ export function createCoordinatorCommand(deps: CoordinatorDeps = {}): Command {
 		.option("--profile <name>", "Canopy profile to apply to spawned agents")
 		.option("--json", "Output as JSON")
 		.action(
-			async (opts: { attach?: boolean; watchdog?: boolean; monitor?: boolean; json?: boolean; profile?: string }) => {
+			async (opts: {
+				attach?: boolean;
+				watchdog?: boolean;
+				monitor?: boolean;
+				json?: boolean;
+				profile?: string;
+			}) => {
 				// opts.attach = true if --attach, false if --no-attach, undefined if neither
 				const shouldAttach = opts.attach !== undefined ? opts.attach : !!process.stdout.isTTY;
 				await startCoordinator(

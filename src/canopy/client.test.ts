@@ -22,9 +22,9 @@ describe("CanopyClient.list()", () => {
 		expect(result.prompts.length).toBeGreaterThan(0);
 		const first = result.prompts[0];
 		expect(first).toBeDefined();
-		expect(typeof first!.name).toBe("string");
-		expect(typeof first!.version).toBe("number");
-		expect(Array.isArray(first!.sections)).toBe(true);
+		expect(typeof first?.name).toBe("string");
+		expect(typeof first?.version).toBe("number");
+		expect(Array.isArray(first?.sections)).toBe(true);
 	});
 });
 
@@ -39,8 +39,8 @@ describe("CanopyClient.render()", () => {
 		expect(result.sections.length).toBeGreaterThan(0);
 		const section = result.sections[0];
 		expect(section).toBeDefined();
-		expect(typeof section!.name).toBe("string");
-		expect(typeof section!.body).toBe("string");
+		expect(typeof section?.name).toBe("string");
+		expect(typeof section?.body).toBe("string");
 	});
 
 	test("throws AgentError on non-existent prompt", async () => {

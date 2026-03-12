@@ -172,9 +172,7 @@ export function createCanopyClient(cwd: string): CanopyClient {
 					prompt: raw.prompt,
 				};
 			} catch {
-				throw new AgentError(
-					`Failed to parse JSON from cn show ${name}: ${trimmed.slice(0, 200)}`,
-				);
+				throw new AgentError(`Failed to parse JSON from cn show ${name}: ${trimmed.slice(0, 200)}`);
 			}
 		},
 	};

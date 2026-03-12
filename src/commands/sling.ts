@@ -24,6 +24,7 @@ import { join, resolve } from "node:path";
 import { createIdentity, loadIdentity } from "../agents/identity.ts";
 import { createManifestLoader, resolveModel } from "../agents/manifest.ts";
 import { writeOverlay } from "../agents/overlay.ts";
+import { createCanopyClient } from "../canopy/client.ts";
 import { loadConfig } from "../config.ts";
 import { AgentError, HierarchyError, ValidationError } from "../errors.ts";
 import { inferDomain } from "../insights/analyzer.ts";
@@ -31,7 +32,6 @@ import { jsonOutput } from "../json.ts";
 import { printSuccess } from "../logging/color.ts";
 import { createMailClient } from "../mail/client.ts";
 import { createMailStore } from "../mail/store.ts";
-import { createCanopyClient } from "../canopy/client.ts";
 import { createMulchClient } from "../mulch/client.ts";
 import { getRuntime } from "../runtimes/registry.ts";
 import { openSessionStore } from "../sessions/compat.ts";
@@ -787,7 +787,8 @@ export async function slingCommand(taskId: string, opts: SlingOptions): Promise<
 			}
 
 			// 8b. Resolve canopy profile if specified
-			const profileName = opts.profile ?? process.env.OVERSTORY_PROFILE ?? config.project.defaultProfile;
+			const profileName =
+				opts.profile ?? process.env.OVERSTORY_PROFILE ?? config.project.defaultProfile;
 			let profileContent: string | undefined;
 			if (profileName) {
 				try {
