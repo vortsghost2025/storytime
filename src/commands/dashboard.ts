@@ -136,7 +136,7 @@ function dimHorizontalLine(width: number, left: string, right: string): string {
 	return left + dimBox.horizontal.repeat(fillCount) + right;
 }
 
-export { pad, truncate, horizontalLine };
+export { horizontalLine, pad, truncate };
 
 /**
  * Compute agent panel height from screen height and agent count.

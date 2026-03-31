@@ -13,7 +13,7 @@ export async function wipeSqliteDb(dbPath: string): Promise<boolean> {
 	for (const ext of extensions) {
 		try {
 			await unlink(`${dbPath}${ext}`);
-			if (ext === "") wiped = true;
+			wiped = true;
 		} catch {
 			// File may not exist
 		}
