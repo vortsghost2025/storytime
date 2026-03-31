@@ -6,19 +6,43 @@ import { join } from "node:path";
 
 /**
  * Delete a SQLite database file and its WAL/SHM companions.
+ * Returns true if the main database file is gone after the operation (either deleted or already absent).
+ * Returns false if the main database file did not exist at the start of the operation.
  */
 export async function wipeSqliteDb(dbPath: string): Promise<boolean> {
+	const file = Bun.file(dbPath);
+	if (!(await file.exists())) {
+		return false;
+	}
+
 	const extensions = ["", "-wal", "-shm"];
-	let wiped = false;
-	for (const ext of extensions) {
-		try {
-			await unlink(`${dbPath}${ext}`);
-			wiped = true;
-		} catch {
-			// File may not exist
+	const maxAttempts = 5;
+	const baseDelayMs = 100; // Start with 100ms delay
+
+	for (let attempt = 0; attempt < maxAttempts; attempt++) {
+		// Try to delete each file (ignore errors - file may not exist or be locked)
+		for (const ext of extensions) {
+			try {
+				await unlink(`${dbPath}${ext}`);
+			} catch {
+				// Ignore errors
+			}
+		}
+
+		// Check if the main database file is gone
+		if (!(await Bun.file(dbPath).exists())) {
+			return true;
+		}
+
+		// If not the last attempt, wait before trying again with exponential backoff
+		if (attempt < maxAttempts - 1) {
+			const delayMs = baseDelayMs * (2 ** attempt); // Exponential backoff: 100ms, 200ms, 400ms, 800ms
+			await new Promise(resolve => setTimeout(resolve, delayMs));
 		}
 	}
-	return wiped;
+
+	// Final check
+	return !(await Bun.file(dbPath).exists());
 }
 
 /**
