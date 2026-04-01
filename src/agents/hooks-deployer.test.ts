@@ -426,7 +426,11 @@ describe("deployHooks", () => {
 
 	test("write failure throws AgentError", async () => {
 		// Use a path that will fail to write (read-only parent)
-		const invalidPath = "/dev/null/impossible-path";
+		// On Windows, /dev/null doesn't exist, so use a platform-specific invalid path
+		const invalidPath =
+			process.platform === "win32"
+				? "C:\\Windows\\System32\\impossible-path\\.claude\\settings.local.json"
+				: "/dev/null/impossible-path";
 
 		try {
 			await deployHooks(invalidPath, "fail-agent");

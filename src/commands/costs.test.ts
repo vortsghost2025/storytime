@@ -1108,7 +1108,7 @@ describe("costsCommand", () => {
 			// config.project.root comes from resolveProjectRoot which uses process.cwd() internally,
 			// so we must match that for the project key.
 			const resolvedRoot = process.cwd();
-			const projectKey = resolvedRoot.replace(/\//g, "-");
+			const projectKey = resolvedRoot.replace(/[/\\:]/g, "-");
 			const projectDir = join(tempHome, ".claude", "projects", projectKey);
 			await mkdir(projectDir, { recursive: true });
 			await Bun.write(join(projectDir, "session-abc123.jsonl"), makeTranscriptContent());
@@ -1130,7 +1130,7 @@ describe("costsCommand", () => {
 		test("--self --json outputs JSON with expected fields", async () => {
 			// Use process.cwd() to match the symlink-resolved root used by config
 			const resolvedRoot = process.cwd();
-			const projectKey = resolvedRoot.replace(/\//g, "-");
+			const projectKey = resolvedRoot.replace(/[/\\:]/g, "-");
 			const projectDir = join(tempHome, ".claude", "projects", projectKey);
 			await mkdir(projectDir, { recursive: true });
 			await Bun.write(join(projectDir, "session-abc123.jsonl"), makeTranscriptContent());

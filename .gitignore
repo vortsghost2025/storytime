@@ -11,10 +11,18 @@ dist/
 Thumbs.db
 
 # IDE
+.vs/
 .vscode/
 .idea/
 *.swp
 *.swo
+
+# Debug logs
+firebase-debug.log
+
+# Misc
+nul
+deletewhendone.md
 
 # Overstory runtime state (in target projects)
 .overstory/worktrees/

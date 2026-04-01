@@ -641,7 +641,8 @@ describe("startCoordinator", () => {
 		expect(cmd).toContain("--append-system-prompt");
 		// File path is passed via $(cat ...) instead of inlining content (overstory#45)
 		expect(cmd).toContain("$(cat '");
-		expect(cmd).toContain("agent-defs/coordinator.md");
+		// Normalize separators for cross-platform test (Windows uses backslashes)
+		expect(cmd.replace(/\\/g, "/")).toContain("agent-defs/coordinator.md");
 	});
 
 	test("reads model from manifest instead of hardcoding", async () => {

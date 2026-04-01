@@ -248,7 +248,7 @@ export class ClaudeRuntime implements AgentRuntime {
 	getTranscriptDir(projectRoot: string): string | null {
 		const home = process.env.HOME ?? "";
 		if (home.length === 0) return null;
-		const projectKey = projectRoot.replace(/\//g, "-");
+		const projectKey = projectRoot.replace(/[/\\:]/g, "-");
 		return join(home, ".claude", "projects", projectKey);
 	}
 }

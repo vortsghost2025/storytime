@@ -22,6 +22,30 @@ function isBdAvailable(): boolean {
 }
 
 /**
+ * Check if bd can actually initialize (not just if CLI exists).
+ * On Windows, embedded Dolt requires CGO which may not be available.
+ */
+function canBdInit(): boolean {
+	try {
+		const tempDir = require("os").tmpdir();
+		const testDir = require("path").join(tempDir, "bd-init-test-" + Date.now());
+		require("fs").mkdirSync(testDir, { recursive: true });
+		// Initialize a git repo first (bd requires git)
+		Bun.spawnSync(["git", "init"], { cwd: testDir, stdout: "pipe", stderr: "pipe" });
+		const result = Bun.spawnSync(["bd", "init"], {
+			cwd: testDir,
+			stdout: "pipe",
+			stderr: "pipe",
+		});
+		// Cleanup
+		Bun.spawnSync(["rm", "-rf", testDir], { stdout: "pipe", stderr: "pipe" });
+		return result.exitCode === 0;
+	} catch {
+		return false;
+	}
+}
+
+/**
  * Initialize beads in a git repo directory.
  */
 async function initBeads(cwd: string): Promise<void> {
@@ -37,7 +61,7 @@ async function initBeads(cwd: string): Promise<void> {
 	}
 }
 
-const bdAvailable = isBdAvailable();
+const bdAvailable = isBdAvailable() && canBdInit();
 
 /**
  * Optimized test suite: uses a single shared repo (beforeAll) instead of
