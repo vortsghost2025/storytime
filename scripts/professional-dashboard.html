@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SNAC - Multi-Agent System</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--card:#12121a;--card-hover:#1a1a24;--border:#1e1e2e;--text:#e4e4e7;--muted:#71717a;--accent:#818cf8;--green:#34d399;--yellow:#fbbf24;--red:#f87171;--blue:#60a5fa;--purple:#a78bfa;--cyan:#22d3ee}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--card);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-text{font-size:18px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-badge{background:var(--accent);color:#000;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
+.header-stats{display:flex;gap:20px}
+.stat{text-align:center}
+.stat-value{font-size:20px;font-weight:700;color:var(--accent)}
+.stat-label{font-size:10px;color:var(--muted);text-transform:uppercase}
+.nav{display:flex;gap:8px}
+.nav-btn{padding:6px 12px;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;cursor:pointer;font-size:12px;transition:all .2s}
+.nav-btn:hover{border-color:var(--accent);color:var(--accent)}
+.nav-btn.active{background:var(--accent);color:#000;border-color:var(--accent)}
+.container{max-width:1600px;margin:0 auto;padding:16px}
+.grid{display:grid;gap:16px;margin-bottom:16px}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+.grid-3{grid-template-columns:repeat(3,1fr)}
+.grid-2{grid-template-columns:repeat(2,1fr)}
+@media(max-width:1200px){.grid-4{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:1fr}}
+@media(max-width:768px){.grid-4,.grid-3,.grid-2{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.card-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.card-badge{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600}
+.badge-green{background:rgba(52,211,153,.15);color:var(--green)}
+.badge-blue{background:rgba(96,165,250,.15);color:var(--blue)}
+.badge-purple{background:rgba(167,139,250,.15);color:var(--purple)}
+.agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.agent-card{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;display:flex;align-items:center;gap:8px;transition:all .2s}
+.agent-card:hover{border-color:var(--accent);background:var(--card-hover)}
+.agent-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-green{background:var(--green);box-shadow:0 0 8px var(--green)}
+.agent-info{flex:1;min-width:0}
+.agent-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agent-role{font-size:10px;color:var(--muted)}
+.trust-input{display:flex;gap:8px;margin-bottom:16px}
+.trust-input input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 14px;color:var(--text);font-size:13px}
+.trust-input input:focus{outline:none;border-color:var(--accent)}
+.trust-btn{padding:10px 20px;background:linear-gradient(135deg,var(--accent),var(--purple));border:none;color:#fff;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600}
+.trust-btn:hover{opacity:.9}
+.trust-btn:disabled{opacity:.5;cursor:not-allowed}
+.trust-result{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;margin-top:12px;display:none}
+.trust-result.visible{display:block}
+.response-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin:12px 0}
+.response-card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px}
+.response-provider{font-size:10px;color:var(--purple);font-weight:600;margin-bottom:4px}
+.response-text{font-size:12px;line-height:1.4;color:var(--text)}
+.consensus-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin:8px 0}
+.consensus-fill{height:100%;border-radius:3px;transition:width .5s}
+.consensus-fill.high{background:var(--green)}
+.consensus-fill.mid{background:var(--yellow)}
+.consensus-fill.low{background:var(--red)}
+.consensus-stats{display:flex;gap:16px;margin-top:8px}
+.consensus-stat{font-size:11px;color:var(--muted)}
+.consensus-stat strong{color:var(--text);font-size:14px}
+.provider-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.provider-card{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center}
+.provider-name{font-size:10px;color:var(--muted);text-transform:uppercase}
+.provider-model{font-size:11px;font-weight:600;margin:4px 0}
+.provider-status{font-size:10px;display:flex;align-items:center;justify-content:center;gap:4px}
+.msg-table{width:100%;border-collapse:collapse}
+.msg-table th{text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase;padding:6px 0;border-bottom:1px solid var(--border)}
+.msg-table td{padding:8px 0;border-bottom:1px solid var(--border);font-size:11px}
+.msg-table tr:last-child td{border-bottom:none}
+.msg-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600}
+.msg-badge.task{background:rgba(96,165,250,.15);color:var(--blue)}
+.msg-badge.result{background:rgba(52,211,153,.15);color:var(--green)}
+.msg-badge.health{background:rgba(251,191,36,.15);color:var(--yellow)}
+.msg-badge.inference{background:rgba(167,139,250,.15);color:var(--purple)}
+.metric-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)}
+.metric-row:last-child{border-bottom:none}
+.metric-label{font-size:11px;color:var(--muted)}
+.metric-value{font-size:12px;font-weight:600}
+.footer{text-align:center;padding:16px;color:var(--muted);font-size:10px}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tabs{display:flex;gap:4px;margin-bottom:12px}
+.tab{padding:6px 12px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-color:var(--accent);background:rgba(129,140,248,.1)}
+</style>
+</head>
+<body>
+<div class="header">
+<div class="logo">
+<span class="logo-text">SNAC</span>
+<span class="logo-badge">20 AGENTS</span>
+</div>
+<div class="header-stats">
+<div class="stat"><div class="stat-value" id="agent-count">20</div><div class="stat-label">Agents</div></div>
+<div class="stat"><div class="stat-value" id="provider-count">6</div><div class="stat-label">Providers</div></div>
+<div class="stat"><div class="stat-value" id="msg-count">-</div><div class="stat-label">Messages</div></div>
+<div class="stat"><div class="stat-value" id="uptime">-</div><div class="stat-label">Uptime</div></div>
+</div>
+<div class="nav">
+<button class="nav-btn active" onclick="showSection('dashboard')">Dashboard</button>
+<button class="nav-btn" onclick="showSection('agents')">Agents</button>
+<button class="nav-btn" onclick="showSection('messages')">Messages</button>
+<a class="nav-btn" href="http://187.77.3.56:8080" target="_blank">IDE</a>
+</div>
+</div>
+
+<div class="container">
+<!-- Trust Network -->
+<div class="card" style="margin-bottom:16px">
+<div class="card-header">
+<span class="card-title">Trust Network - Multi-Model Verification</span>
+<span class="card-badge badge-purple">6 PROVIDERS</span>
+</div>
+<p style="font-size:12px;color:var(--muted);margin-bottom:12px">Ask any question. Verified by multiple AI models for accuracy.</p>
+<div class="trust-input">
+<input type="text" id="question-input" placeholder="Ask any question..." onkeypress="if(event.key==='Enter')askTrust()">
+<button class="trust-btn" onclick="askTrust()" id="ask-btn">Verify</button>
+</div>
+<div class="trust-result" id="trust-result">
+<div id="result-question" style="font-size:14px;font-weight:600;margin-bottom:12px"></div>
+<div class="response-grid" id="result-responses"></div>
+<div style="margin-top:12px">
+<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px">
+<span>Consensus</span><span id="consensus-pct">0%</span>
+</div>
+<div class="consensus-bar"><div class="consensus-fill low" id="consensus-fill" style="width:0%"></div></div>
+<div class="consensus-stats">
+<div class="consensus-stat"><strong id="conf-score">0%</strong><br>Confidence</div>
+<div class="consensus-stat"><strong id="models-queried">0</strong><br>Queried</div>
+<div class="consensus-stat"><strong id="verdict">-</strong><br>Verdict</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Provider Status -->
+<div class="card" style="margin-bottom:16px">
+<div class="card-header"><span class="card-title">Inference Providers</span></div>
+<div class="provider-grid">
+<div class="provider-card"><div class="provider-name">NVIDIA</div><div class="provider-model">llama-3.1-8b</div><div class="provider-status"><span class="dot-green" style="width:6px;height:6px;border-radius:50%;display:inline-block"></span> Online</div></div>
+<div class="provider-card"><div class="provider-name">OpenRouter</div><div class="provider-model">gemma-2-9b</div><div class="provider-status"><span class="dot-green" style="width:6px;height:6px;border-radius:50%;display:inline-block"></span> Online</div></div>
+<div class="provider-card"><div class="provider-name">Cerebras</div><div class="provider-model">llama3.1-8b</div><div class="provider-status"><span class="dot-green" style="width:6px;height:6px;border-radius:50%;display:inline-block"></span> Online</div></div>
+<div class="provider-card"><div class="provider-name">Ollama</div><div class="provider-model">orca-mini</div><div class="provider-status"><span class="dot-green" style="width:6px;height:6px;border-radius:50%;display:inline-block"></span> Online</div></div>
+<div class="provider-card"><div class="provider-name">Azure OpenAI</div><div class="provider-model">GPT-4o</div><div class="provider-status"><span class="dot-green" style="width:6px;height:6px;border-radius:50%;display:inline-block"></span> Online</div></div>
+<div class="provider-card"><div class="provider-name">Azure Embed</div><div class="provider-model">text-embedding-3</div><div class="provider-status"><span class="dot-green" style="width:6px;height:6px;border-radius:50%;display:inline-block"></span> Online</div></div>
+</div>
+</div>
+
+<!-- Agents + Messages Grid -->
+<div class="grid grid-2">
+<div class="card">
+<div class="card-header"><span class="card-title">Connected Agents</span><span class="card-badge badge-green" id="agent-badge">20</span></div>
+<div class="agent-grid" id="agent-grid"></div>
+</div>
+<div class="card">
+<div class="card-header">
+<span class="card-title">Recent Messages</span>
+<div class="tabs">
+<button class="tab active" onclick="setFilter('all',this)">All</button>
+<button class="tab" onclick="setFilter('inference_result',this)">AI</button>
+<button class="tab" onclick="setFilter('task_result',this)">Results</button>
+<button class="tab" onclick="setFilter('health_report',this)">Health</button>
+</div>
+</div>
+<table class="msg-table">
+<thead><tr><th>Time</th><th>From</th><th>Type</th><th>Preview</th></tr></thead>
+<tbody id="msg-tbody"></tbody>
+</table>
+</div>
+</div>
+
+<!-- System Metrics -->
+<div class="grid grid-3">
+<div class="card">
+<div class="card-header"><span class="card-title">System Health</span></div>
+<div id="system-metrics">
+<div class="metric-row"><span class="metric-label">Gateway</span><span class="metric-value" style="color:var(--green)">OK</span></div>
+<div class="metric-row"><span class="metric-label">Terminal Backend</span><span class="metric-value" style="color:var(--green)">OK</span></div>
+<div class="metric-row"><span class="metric-label">Dashboard Aggregator</span><span class="metric-value" style="color:var(--green)">OK</span></div>
+<div class="metric-row"><span class="metric-label">NemoClaw/OpenShell</span><span class="metric-value" style="color:var(--green)">OK</span></div>
+</div>
+</div>
+<div class="card">
+<div class="card-header"><span class="card-title">Inference Stats</span></div>
+<div id="inference-metrics">
+<div class="metric-row"><span class="metric-label">Total Queries</span><span class="metric-value" id="total-queries">0</span></div>
+<div class="metric-row"><span class="metric-label">Avg Latency</span><span class="metric-value" id="avg-latency">-</span></div>
+<div class="metric-row"><span class="metric-label">Most Used</span><span class="metric-value">NVIDIA</span></div>
+<div class="metric-row"><span class="metric-label">Azure GPT-4o</span><span class="metric-value" style="color:var(--green)">Active</span></div>
+</div>
+</div>
+<div class="card">
+<div class="card-header"><span class="card-title">Query History</span></div>
+<table class="msg-table">
+<thead><tr><th>Time</th><th>Question</th><th>Conf</th></tr></thead>
+<tbody id="history-tbody"><tr><td colspan="3" style="color:var(--muted)">No queries yet</td></tr></tbody>
+</table>
+</div>
+</div>
+</div>
+
+<div class="footer">SNAC Multi-Agent System | 20 Agents | 6 Inference Providers | ws://187.77.3.56:3002 | <span id="update-time"></span></div>
+
+<script>
+const GW='http://187.77.3.56:3002';
+let filter='all',queryHistory=[],queryCount=0,confidenceSum=0;
+
+function setFilter(f,el){filter=f;document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');refresh();}
+function fmtTime(iso){return new Date(iso).toLocaleTimeString();}
+
+async function askTrust(){
+const inp=document.getElementById('question-input'),btn=document.getElementById('ask-btn'),q=inp.value.trim();
+if(!q)return;
+btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+try{
+await fetch(GW+'/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from:'dashboard',to:'trust-router',message:q,type:'task_assignment',prompt:q})});
+let attempts=0;
+const poll=setInterval(async()=>{
+attempts++;
+try{
+const r=await fetch(GW+'/messages?limit=5&type=task_result');const d=await r.json();
+const found=(d.messages||[]).find(m=>{try{return JSON.parse(m.message).output?.includes(q.substring(0,15))}catch(e){return false}});
+if(found||attempts>20){
+clearInterval(poll);
+if(found){
+try{
+const c=JSON.parse(JSON.parse(found.message).output);
+displayResult(c);
+queryCount++;confidenceSum+=c.consensus?.confidence||0;
+document.getElementById('total-queries').textContent=queryCount;
+queryHistory.unshift({time:new Date().toISOString(),question:q,confidence:c.consensus?.confidence||0});
+updateHistory();
+}catch(e){showError('Parse error')}
+}else{showError('Timeout')}
+btn.disabled=false;btn.textContent='Verify';
+}
+}catch(e){if(attempts>20){clearInterval(poll);btn.disabled=false;btn.textContent='Verify';showError('Error')}},1500);
+}catch(e){btn.disabled=false;btn.textContent='Verify';showError('Failed')}
+}
+
+function displayResult(r){
+document.getElementById('trust-result').classList.add('visible');
+document.getElementById('result-question').textContent=r.question;
+document.getElementById('result-responses').innerHTML=(r.responses||[]).map(x=>'<div class="response-card"><div class="response-provider">'+x.provider+'</div><div class="response-text">'+(x.answer||'').substring(0,150)+'</div></div>').join('');
+const a=r.consensus?.agreement||0,c=r.consensus?.confidence||0,v=r.consensus?.verdict||'unknown';
+document.getElementById('consensus-pct').textContent=a+'%';document.getElementById('conf-score').textContent=c+'%';
+document.getElementById('models-queried').textContent=r.metadata?.modelsQueried||0;document.getElementById('verdict').textContent=v.replace(/_/g,' ');
+const f=document.getElementById('consensus-fill');f.style.width=a+'%';f.className='consensus-fill '+(a>70?'high':a>40?'mid':'low');
+}
+function showError(m){document.getElementById('trust-result').classList.add('visible');document.getElementById('result-question').textContent='Error';document.getElementById('result-responses').innerHTML='<div class="response-card"><div class="response-text" style="color:var(--red)">'+m+'</div></div>';}
+function updateHistory(){document.getElementById('history-tbody').innerHTML=queryHistory.slice(0,5).map(q=>'<tr><td style="color:var(--muted)">'+fmtTime(q.time)+'</td><td>'+q.question.substring(0,30)+'</td><td><span class="card-badge badge-green">'+q.confidence+'%</span></td></tr>').join('')||'<tr><td colspan="3" style="color:var(--muted)">No queries yet</td></tr>';}
+
+async function refresh(){
+try{
+const[h,m]=await Promise.all([fetch(GW+'/health').then(r=>r.json()),fetch(GW+'/messages?limit=50').then(r=>r.json()).catch(()=>({messages:[]}))]);
+document.getElementById('agent-count').textContent=h.agentsConnected;
+document.getElementById('agent-badge').textContent=h.agentsConnected;
+document.getElementById('msg-count').textContent=m.total||m.messages?.length||0;
+document.getElementById('agent-grid').innerHTML=(h.agents||[]).map(a=>'<div class="agent-card"><span class="agent-dot dot-green"></span><div class="agent-info"><div class="agent-name">'+a.name+'</div><div class="agent-role">'+a.role+'</div></div></div>').join('');
+let msgs=(m.messages||[]);
+if(filter!=='all')msgs=msgs.filter(msg=>msg.type===filter);
+document.getElementById('msg-tbody').innerHTML=msgs.slice(-15).reverse().map(m=>{
+let p='';try{p=JSON.parse(m.message).output?.substring(0,50)||''}catch(e){p=(m.message||'').substring(0,50)}
+const badge=m.type?.includes('inference')?'inference':m.type?.includes('result')?'result':m.type?.includes('health')?'health':'task';
+return '<tr><td style="color:var(--muted)">'+fmtTime(m.timestamp)+'</td><td>'+m.from+'</td><td><span class="msg-badge '+badge+'">'+(m.type||'').replace(/_result|_report/g,'')+'</span></td><td>'+p+'</td></tr>';
+}).join('')||'<tr><td colspan="4" style="color:var(--muted)">No messages</td></tr>';
+document.getElementById('update-time').textContent=new Date().toLocaleTimeString();
+}catch(e){}
+}
+refresh();setInterval(refresh,5000);
+</script>
+</body>
+</html>
