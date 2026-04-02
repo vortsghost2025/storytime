@@ -10,6 +10,7 @@ import { CopilotRuntime } from "./copilot.ts";
 import { CursorRuntime } from "./cursor.ts";
 import { GeminiRuntime } from "./gemini.ts";
 import { GooseRuntime } from "./goose.ts";
+import { NemotronRuntime } from "./nemotron.ts";
 import { OpenCodeRuntime } from "./opencode.ts";
 import { PiRuntime } from "./pi.ts";
 import { SaplingRuntime } from "./sapling.ts";
@@ -25,6 +26,7 @@ const runtimes = new Map<string, () => AgentRuntime>([
 	["cursor", () => new CursorRuntime()],
 	["gemini", () => new GeminiRuntime()],
 	["goose", () => new GooseRuntime()],
+	["nemotron", () => new NemotronRuntime()],
 	["opencode", () => new OpenCodeRuntime()],
 	["pi", () => new PiRuntime()],
 	["sapling", () => new SaplingRuntime()],
@@ -49,6 +51,7 @@ export function getAllRuntimes(): AgentRuntime[] {
 		new CursorRuntime(),
 		new GeminiRuntime(),
 		new GooseRuntime(),
+		new NemotronRuntime(),
 		new OpenCodeRuntime(),
 		new PiRuntime(),
 		new SaplingRuntime(),

@@ -566,8 +566,14 @@ function renderHeader(width: number, interval: number, currentRunId?: string | n
 	const right = `${now}${scope} | refresh: ${interval}ms`;
 	const padding = width - visibleLength(left) - right.length;
 	const line = left + " ".repeat(Math.max(0, padding)) + right;
+
+	// Navigation links row
+	const links = `${color.dim("Links:")} ${accent("Gateway")} ${color.dim("http://187.77.3.56:3002/dashboard")} ${color.dim("|")} ${accent("SNAC IDE")} ${color.dim("http://187.77.3.56/")}`;
+	const linkPadding = " ".repeat(Math.max(0, width - visibleLength(links)));
+	const linkLine = links + linkPadding;
+
 	const separator = horizontalLine(width, BOX.topLeft, BOX.horizontal, BOX.topRight);
-	return `${line}\n${separator}`;
+	return `${line}\n${linkLine}\n${separator}`;
 }
 
 /**
