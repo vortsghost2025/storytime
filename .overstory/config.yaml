@@ -2,9 +2,9 @@
 # See: https://github.com/overstory/overstory
 
 project:
-  name: overstory
-  root: "C:\\Users\\seand\\source\\repos\\overstory"
-  canonicalBranch: main
+  name: storytime
+  root: "S:\\storytime"
+  canonicalBranch: master
   qualityGates:
     - name: Tests
       command: bun test
