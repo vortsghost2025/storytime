@@ -44,8 +44,10 @@ import { createSupervisorCommand } from "./commands/supervisor.ts";
 import { traceCommand } from "./commands/trace.ts";
 import { createUpdateCommand } from "./commands/update.ts";
 import { createUpgradeCommand } from "./commands/upgrade.ts";
+import { uiCommand } from "./commands/ui.ts";
 import { createWatchCommand } from "./commands/watch.ts";
 import { createWorktreeCommand } from "./commands/worktree.ts";
+import { registerGpuCommand } from "./commands/gpu.ts";
 import { setProjectRootOverride } from "./config.ts";
 import { ConfigError, OverstoryError, WorktreeError } from "./errors.ts";
 import { jsonError } from "./json.ts";
@@ -78,6 +80,7 @@ const COMMANDS = [
 	"stop",
 	"status",
 	"dashboard",
+	"ui",
 	"discover",
 	"inspect",
 	"clean",
@@ -244,6 +247,7 @@ program.addCommand(createHooksCommand());
 program.addCommand(createMonitorCommand());
 program.addCommand(createWorktreeCommand());
 program.addCommand(createLogCommand());
+registerGpuCommand(program);
 program.addCommand(createWatchCommand());
 program.addCommand(createGroupCommand());
 program.addCommand(createCompletionsCommand());
@@ -334,6 +338,15 @@ program
 program.addCommand(createStatusCommand());
 
 program.addCommand(createDashboardCommand());
+
+program
+	.command("ui")
+	.description("Start the web-based dashboard for monitoring agents")
+	.option("-p, --port <port>", "Port to serve on", "3000")
+	.option("--json", "Output as JSON")
+	.action(async (opts) => {
+		await uiCommand(opts);
+	});
 
 program.addCommand(createDiscoverCommand());
 
