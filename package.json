@@ -45,7 +45,7 @@
 	},
 	"dependencies": {
 		"@genkit-ai/mcp": "^1.31.0",
-		"@os-eco/mulch-cli": "^0.6.2",
+		"@os-eco/mulch-cli": "^0.7.0",
 		"chalk": "^5.6.2",
 		"commander": "^14.0.3"
 	},
